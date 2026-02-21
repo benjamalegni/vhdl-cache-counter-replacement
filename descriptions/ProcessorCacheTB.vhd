@@ -168,11 +168,38 @@ begin
             D_RdStb <= '0';
         end procedure;
 
+        procedure cpu_write(
+            constant addr : std_logic_vector(31 downto 0);
+            constant data : std_logic_vector(31 downto 0)
+        ) is
+        begin
+            D_Addr    <= addr;
+            D_DataOut <= data;
+            D_RdStb   <= '0';
+            D_WrStb   <= '1';
+
+            wait until rising_edge(Clk);
+            for i in 0 to 512 loop
+                exit when D_Rdy = '1';
+                wait until rising_edge(Clk);
+            end loop;
+            assert D_Rdy = '1'
+                report "Timeout esperando D_Rdy=1 durante cpu_write"
+                severity failure;
+
+            wait until rising_edge(Clk);
+            D_WrStb <= '0';
+        end procedure;
+
         constant ADDR_A     : std_logic_vector(31 downto 0) := x"00000000"; -- bloque 0
         constant ADDR_B     : std_logic_vector(31 downto 0) := x"00000020"; -- bloque 1
         constant ADDR_C     : std_logic_vector(31 downto 0) := x"00000040"; -- bloque 2
         constant ADDR_D     : std_logic_vector(31 downto 0) := x"00000060"; -- bloque 3
         constant ADDR_E     : std_logic_vector(31 downto 0) := x"00000080"; -- bloque 4
+        constant ADDR_F     : std_logic_vector(31 downto 0) := x"000000A0"; -- bloque 5
+        constant ADDR_G     : std_logic_vector(31 downto 0) := x"000000C0"; -- bloque 6
+        constant DATA_A_NEW : std_logic_vector(31 downto 0) := x"DEADBEEF";
+        constant DATA_G_NEW : std_logic_vector(31 downto 0) := x"CAFEBABE";
 
         variable rd_before : integer;
         variable wr_before : integer;
@@ -284,6 +311,112 @@ begin
         cpu_read(ADDR_B, read_data);
         assert rd_txn_count > rd_before
             report "Fallo: B debio ser miss luego del reemplazo"
+            severity failure;
+
+        -- ---------------- Casos clave de escritura ----------------
+        -- 1) Write hit: no debe haber transaccion de bloque y A queda dirty
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_write(ADDR_A, DATA_A_NEW);
+        assert rd_txn_count = rd_before and wr_txn_count = wr_before
+            report "Fallo: write hit en A no debe generar trafico de bloque"
+            severity failure;
+
+        -- write hit debe reflejarse de inmediato y leerse por hit
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_read(ADDR_A, read_data);
+        assert rd_txn_count = rd_before and wr_txn_count = wr_before
+            report "Fallo: lectura de A tras write hit debio ser hit sin trafico de bloque"
+            severity failure;
+        assert read_data = DATA_A_NEW
+            report "Fallo: write hit en A no actualizo el dato leido"
+            severity failure;
+
+        -- 2) Dirty eviction: forzamos reemplazo de la linea dirty (bit1) con Counter efectivo=01.
+        -- Nota: cpu_read evalua en el siguiente flanco, por eso esperamos Counter=00 aqui.
+        -- Debe hacer write-back (WrStb_block) + refill (RdStb_block)
+        wait_counter("00");
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+
+        -- Acceso explicito para detectar deadlock en camino dirty-eviction con mensaje dedicado
+        D_Addr  <= ADDR_F;
+        D_RdStb <= '1';
+        D_WrStb <= '0';
+
+        wait until rising_edge(Clk);
+        for i in 0 to 256 loop
+            exit when D_Rdy = '1';
+            wait until rising_edge(Clk);
+        end loop;
+        assert D_Rdy = '1'
+            report "Fallo: dirty eviction deja D_Rdy en 0 (write-back sin refill completo)"
+            severity failure;
+
+        wait until rising_edge(Clk);
+        read_data := D_DataIn;
+        D_RdStb <= '0';
+
+        assert rd_txn_count > rd_before and wr_txn_count > wr_before
+            report "Fallo: reemplazo dirty debio generar write-back y refill"
+            severity failure;
+
+        -- Verificamos persistencia del dato escrito en A despues del write-back
+        rd_before := rd_txn_count;
+        cpu_read(ADDR_A, read_data);
+        assert rd_txn_count > rd_before
+            report "Fallo: A debio ser miss luego de ser reemplazada"
+            severity failure;
+        assert read_data = DATA_A_NEW
+            report "Fallo: write-back no preservo el dato actualizado de A"
+            severity failure;
+
+        -- 3) Write miss (write-allocate): solo refill + write en cache
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_write(ADDR_G, DATA_G_NEW);
+        assert rd_txn_count > rd_before and wr_txn_count = wr_before
+            report "Fallo: write miss clean debio hacer refill sin write-back"
+            severity failure;
+
+        -- El dato escrito en write-miss debe leerse por hit inmediato
+        rd_before := rd_txn_count;
+        cpu_read(ADDR_G, read_data);
+        assert rd_txn_count = rd_before
+            report "Fallo: lectura de G posterior a write-miss debio ser hit"
+            severity failure;
+        assert read_data = DATA_G_NEW
+            report "Fallo: write-allocate no dejo el dato correcto en cache"
+            severity failure;
+
+        -- 4) Segundo write hit consecutivo sobre G: sin trafico de bloque y dato actualizado
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_write(ADDR_G, x"0BADF00D");
+        assert rd_txn_count = rd_before and wr_txn_count = wr_before
+            report "Fallo: segundo write hit en G no debe generar trafico de bloque"
+            severity failure;
+
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_read(ADDR_G, read_data);
+        assert rd_txn_count = rd_before and wr_txn_count = wr_before
+            report "Fallo: lectura de G tras segundo write hit debio ser hit"
+            severity failure;
+        assert read_data = x"0BADF00D"
+            report "Fallo: segundo write hit en G no actualizo el dato"
+            severity failure;
+
+        -- 5) Estabilidad de hit repetido: nueva lectura de G sigue sin trafico de bloque
+        rd_before := rd_txn_count;
+        wr_before := wr_txn_count;
+        cpu_read(ADDR_G, read_data);
+        assert rd_txn_count = rd_before and wr_txn_count = wr_before
+            report "Fallo: hit repetido en G no debe generar transacciones de bloque"
+            severity failure;
+        assert read_data = x"0BADF00D"
+            report "Fallo: hit repetido en G devolvio dato incorrecto"
             severity failure;
 
         report "TB PASS: cache asociativa y reemplazo por Counter verificados" severity note;

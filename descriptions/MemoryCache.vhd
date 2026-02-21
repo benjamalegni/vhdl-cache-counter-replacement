@@ -1,15 +1,15 @@
 -- ======================
--- ====    Autor Martín Vázquez 
+-- ====    Autor Martï¿½n Vï¿½zquez 
 -- ====    arquitectura de Computadoras 1 - 2024
 --
--- ====== Memoria cache de datos - Memoria rápida de Nivel inferior
--- == Memoria con 4 Líneas de 8 palabras de 4 bytes
+-- ====== Memoria cache de datos - Memoria rï¿½pida de Nivel inferior
+-- == Memoria con 4 Lï¿½neas de 8 palabras de 4 bytes
 -- == Escritura/Lectura de  palabra (4 bytes) con el procesador
--- ==  La memoria es de mapeo directo (asociativa de 4 conjuntos de una línea ) 
+-- ==  La memoria es de mapeo directo (asociativa de 4 conjuntos de una lï¿½nea ) 
 -- ===========
--- Posee dos máquinas de estados. 
---     Una máquina es la encargada de transferir (envío y recepción) bloques con la memoria Principal
---     Otra máquina es principal y se encarga del manejo de cache.  
+-- Posee dos mï¿½quinas de estados. 
+--     Una mï¿½quina es la encargada de transferir (envï¿½o y recepciï¿½n) bloques con la memoria Principal
+--     Otra mï¿½quina es principal y se encarga del manejo de cache.  
 -- ======================
 
 library STD;
@@ -26,7 +26,7 @@ entity MemoryCache is
            Reset: in std_logic;
            Counter: in std_logic_vector(1 downto 0);
            
-        -- puertos que interactúan con el procesador
+        -- puertos que interactï¿½an con el procesador
 	       Addr : in std_logic_vector(31 downto 0);
            DataIn : in std_logic_vector(31 downto 0);
            RdStb : in std_logic ;
@@ -35,14 +35,14 @@ entity MemoryCache is
            DataOut : out std_logic_vector(31 downto 0);
            
            
-	 -- puertos que interactúan con la memoria principal
+	 -- puertos que interactï¿½an con la memoria principal
 	   	   Addr_Block: out std_logic_vector(26 downto 0); 
 	   	   -- son 27 bits de bloque, si se consideran bloques de 8 palabras o 32 bytes  y 5 bits paar las 8 palabras
-	   	   -- posee la dirección de bloque que empezará a escribir o a leer
+	   	   -- posee la direcciï¿½n de bloque que empezarï¿½ a escribir o a leer
 	   	    
 	   	   RdStb_block : out std_logic; --indica a memoria principal que va a leer bloque para escribirlo en cache
            WrStb_block : out std_logic;-- indica a memoria rpincipal que va escribirle bloque
-           RdWr_data: in std_logic; -- la memoria proncipal indica que comenzó a leer o escribir palabras
+           RdWr_data: in std_logic; -- la memoria proncipal indica que comenzï¿½ a leer o escribir palabras
            Rdy_block: in std_logic; -- indica que memoria principal esta lista para comenzar a transmitir bloques
            DataIn_mem : in std_logic_vector(31 downto 0); 
            DataOut_mem : out std_logic_vector(31 downto 0) );
@@ -61,37 +61,37 @@ architecture cache_arch of MemoryCache is
     signal regs_label, next_label: matriz_label; -- registros que poseen las etiquetas correpondiente cada bloque de la memoria cache
     
     
-    signal reg_repl_line, next_repl_line: std_logic_vector(1 downto 0); -- registro que indica la línea de cache que se reemplazará en la próxima transferencia de bloque desde memoria principal a cache
+    signal reg_repl_line, next_repl_line: std_logic_vector(1 downto 0); -- registro que indica la lï¿½nea de cache que se reemplazarï¿½ en la prï¿½xima transferencia de bloque desde memoria principal a cache
     signal line_sel_proc : std_logic_vector(1 downto 0); -- linea usada en acceso proc (hit o victima)
 
-    -- señales que describe los estados de la máquina que realiza transferecia de bloques
+    -- seï¿½ales que describe los estados de la mï¿½quina que realiza transferecia de bloques
     type type_state_block is (init_st_block, wait_wrData_block, write_Data_block, write_Data2_block, write_Data3_block, wait_rdData_block, read_Data_block);
     signal curr_st_block, next_st_block: type_state_block;    
     
-    -- señales que describe los estados de la máquina principal de manejo de cache
+    -- seï¿½ales que describe los estados de la mï¿½quina principal de manejo de cache
     -- ===================== ESTO SE DEBE DEFINIR POR LOS ALUMNOS/AS
     type type_state_cache is (cache_idle_st, cache_writeback_victim_st, cache_refill_and_resume_st);
     signal curr_st_cache, next_st_cache: type_state_cache;    
     -- =============================================
             
             
-    -- señal que posee la dirección dentro del bloque cuando se requiere avanzar en la escritura y lectura de bloques
+    -- seï¿½al que posee la direcciï¿½n dentro del bloque cuando se requiere avanzar en la escritura y lectura de bloques
     signal reg_addr_offset, next_addr_offset: std_logic_vector(2 downto 0);
 
-    -- señales que indican a máquina de estados que que efectúa transferencia de bloques para envio y escritura en cache
+    -- seï¿½ales que indican a mï¿½quina de estados que que efectï¿½a transferencia de bloques para envio y escritura en cache
     -- son para iniciar el proceso de transferencia
     signal send_block, write_block: std_logic;
     
-    -- señales de lectura y escritura de la memoria manejadas por máquina de control principal de cache. 
+    -- seï¿½ales de lectura y escritura de la memoria manejadas por mï¿½quina de control principal de cache. 
     -- esto es parra solicitudes del procesador
     signal rd_mem_proc, wr_mem_proc: std_logic; 
 
-    -- señales de lectura y escritura de la memoria manejadas por máquina de control de transferencia de bloques 
+    -- seï¿½ales de lectura y escritura de la memoria manejadas por mï¿½quina de control de transferencia de bloques 
     signal rd_mem_block, wr_mem_block: std_logic; 
 
-    -- señales que indican que finalizó de escribir un bloque enviado desde memoria principal
-    -- o que terminó de leer un bloque para que lo escriba la memoria principal.
-    signal end_rd_block, end_wr_block: std_logic; -- estas señales las genera la máquina de estados que efectúa transferencia de datos 
+    -- seï¿½ales que indican que finalizï¿½ de escribir un bloque enviado desde memoria principal
+    -- o que terminï¿½ de leer un bloque para que lo escriba la memoria principal.
+    signal end_rd_block, end_wr_block: std_logic; -- estas seï¿½ales las genera la mï¿½quina de estados que efectï¿½a transferencia de datos 
     
 begin
 
@@ -102,7 +102,7 @@ begin
     begin
        
        if init_memory_cache then
-            -- esta rama del if se ejecuta por única vez al principio. Se inicia memoria cache con 0's 
+            -- esta rama del if se ejecuta por ï¿½nica vez al principio. Se inicia memoria cache con 0's 
             for i in 0 to 127 loop
                 mem_cache(i) <= (others => '0');
             end loop;
@@ -111,7 +111,7 @@ begin
        elsif (rising_edge(clk)) then
                 
              if (wr_mem_proc = '1' or wr_mem_block = '1') then
-                    if (wr_mem_proc='1') then -- si se escribe con dirección solicitada desde el procesador
+                    if (wr_mem_proc='1') then -- si se escribe con direcciï¿½n solicitada desde el procesador
                         address := CONV_INTEGER(line_sel_proc & Addr(4 downto 0)); -- direccion de 7 bits [linea][palabra]
                         -- address := CONV_INTEGER(Addr(6 downto 0));
                         mem_cache(address) <= DataIn(31 downto 24);
@@ -119,7 +119,7 @@ begin
                         mem_cache(address+2) <= DataIn(15 downto 8);
                         mem_cache(address+3) <= DataIn(7 downto 0);
                     else -- wr_mem_block='1'
-                    -- se escribe con dirección solicitada por memoria principal, en transferencias de bloques   
+                    -- se escribe con direcciï¿½n solicitada por memoria principal, en transferencias de bloques   
                         address := CONV_INTEGER(reg_repl_line & reg_addr_offset & "00"); -- direccion de 7 bits [linea][offset][00]
                         -- address := CONV_INTEGER( (Addr(6 downto 5)&reg_addr_offset&"00") );
                         mem_cache(address) <= DataIn_mem(31 downto 24);
@@ -129,7 +129,7 @@ begin
                     end if;
                 
              elsif (rd_mem_proc = '1' or rd_mem_block = '1') then
-                    if (rd_mem_proc ='1') then -- si se lee con dirección solicitada desde el procesador  
+                    if (rd_mem_proc ='1') then -- si se lee con direcciï¿½n solicitada desde el procesador  
                         address := CONV_INTEGER(line_sel_proc & Addr(4 downto 0)); -- direccion de 7 bits [linea][palabra]
                         -- address := CONV_INTEGER(Addr(6 downto 0));
                         aux_rd(31 downto 24) <= mem_cache(address);   
@@ -137,7 +137,7 @@ begin
                         aux_rd(15 downto 8) <= mem_cache(address+2);
                         aux_rd(7 downto 0) <= mem_cache(address+3);
                     else -- rd_mem_block
-                     -- se lee con dirección solicitada por memoria principal, en transferencias de bloques
+                     -- se lee con direcciï¿½n solicitada por memoria principal, en transferencias de bloques
                         address := CONV_INTEGER(reg_repl_line & reg_addr_offset & "00"); -- direccion de 7 bits [linea][offset][00]
                         -- address := CONV_INTEGER( (Addr(6 downto 5)&reg_addr_offset&"00"));
                         aux_rd2(31 downto 24) <= mem_cache(address);   
@@ -151,8 +151,8 @@ begin
 -- ===========
 
 -- ===========
--- proceso que maneja la información de etiquetas y flags de los bloques
--- y dirección de posición dentro del bloque para escritura y lectura
+-- proceso que maneja la informaciï¿½n de etiquetas y flags de los bloques
+-- y direcciï¿½n de posiciï¿½n dentro del bloque para escritura y lectura
     process (clk, reset)
     begin 
         if (reset='1') then
@@ -172,11 +172,11 @@ begin
                 reg_repl_line <= next_repl_line;
         end if;
     end process;
--- Fin proceso que maneja la información de etiquetas y flags de los bloques
+-- Fin proceso que maneja la informaciï¿½n de etiquetas y flags de los bloques
 -- ===========
 
 --  ================ ALUMNOS/AS ==========================
---  === Procesos que modelan máquina de estados que realiza manejo principal  (o controlador) de la memoria cache
+--  === Procesos que modelan mï¿½quina de estados que realiza manejo principal  (o controlador) de la memoria cache
 --  =================================== 
     
 -- === Proceso que modela registro del estado - NO MODIIFICAR
@@ -191,7 +191,7 @@ begin
 
 
 -- =============== PROCESO QUE LOS ALUMNOS/AS DEBEN DESCRIBIR
--- ========= Este proceso realiza las función de próximo estado de la máquina y las funciones de salida
+-- ========= Este proceso realiza las funciï¿½n de prï¿½ximo estado de la mï¿½quina y las funciones de salida
 -- ===================
 
     state_machine_cache: process (curr_st_cache, reg_valid_line, reg_dirty_line, RdStb, WrStb, Addr,
@@ -203,29 +203,29 @@ begin
         variable req_tag   : std_logic_vector(26 downto 0);
     begin
     
---     Este proceso se activa por los cambios en las siguientes señales (ENTRADAS):
+--     Este proceso se activa por los cambios en las siguientes seï¿½ales (ENTRADAS):
 --     * <curr_st_machine> -> el estado corriente en que se encuentra la maquina que controla cache
---     * <Addr> -> dirección enviada por el el procesador para efectuar lectura/escritura 
---     * <RdStb>,<WrStb> ->  señales de control enviadas por el procesador indicar lectura o escritura
---     * <reg_valid_line> -> registro (son cuatro ffs) que indican si las líneas donde se ubican los bloques fueron usadas alguna vez
---     * <reg_dirty_line> -> registro (son cuatro ffs) que indican si los bloques que se encuetan en las respectivas líneas de cache fueron escritos
---     * <regs_label_line(line)> -> (4 líneas) registros que posee la etiqueta del bloque que se encuentra ubicado en la correspondiente línea 
+--     * <Addr> -> direcciï¿½n enviada por el el procesador para efectuar lectura/escritura 
+--     * <RdStb>,<WrStb> ->  seï¿½ales de control enviadas por el procesador indicar lectura o escritura
+--     * <reg_valid_line> -> registro (son cuatro ffs) que indican si las lï¿½neas donde se ubican los bloques fueron usadas alguna vez
+--     * <reg_dirty_line> -> registro (son cuatro ffs) que indican si los bloques que se encuetan en las respectivas lï¿½neas de cache fueron escritos
+--     * <regs_label_line(line)> -> (4 lï¿½neas) registros que posee la etiqueta del bloque que se encuentra ubicado en la correspondiente lï¿½nea 
 --     * <end_rd_block>, <end_wr_block> -> 
---         Señales que provienen del módulo (máquina de estados)que efectúa transferencia de bloques con la memoria principal. 
---         Estas señales indican que el módulo finalizó de hacer la transferencia del bloque
---         en el caso de <end_rd_block>, termino de leerlo de cache y enviárselo a la memoria principal
---         en el caso de <end_wr_block>, que finalizó de escribir en cache, el bloque que recibe de memoria principal
+--         Seï¿½ales que provienen del mï¿½dulo (mï¿½quina de estados)que efectï¿½a transferencia de bloques con la memoria principal. 
+--         Estas seï¿½ales indican que el mï¿½dulo finalizï¿½ de hacer la transferencia del bloque
+--         en el caso de <end_rd_block>, termino de leerlo de cache y enviï¿½rselo a la memoria principal
+--         en el caso de <end_wr_block>, que finalizï¿½ de escribir en cache, el bloque que recibe de memoria principal
      
---     Este proceso genera las siguiente señales (SALIDAS):
---     * <next_st_cache> -> prpximo estado de máquina de control de cache
+--     Este proceso genera las siguiente seï¿½ales (SALIDAS):
+--     * <next_st_cache> -> prpximo estado de mï¿½quina de control de cache
 --     * <D_Rdy> -> indica al procesador si se encuentra Ready la memoria para leer y escribir palabras (desde el procesador)
---     * <wr_mem_proc> -> señal de control para escribir en bloque de cache, palabra que proviene del procesador (DataIn)
---     * <rd_mem_proc> -> señal de control para leer de bloque de cache, palabra que requiere el precesador
---     * <next_valid_line> -> próximo valor del registro (son cuatro ffs) correspondiente a "valid" 
---     * <next_dirty_line> -> próximo valor del registro (son cuatro ffs) correspondiente a "dirty"
---     * <next_label_line(line)> -> (4 líneas) próximo valor del registro que contiene la etiqueta 
---     * <write_block> -> le indica al módulo de transferencia de bloques que debe traer bloque de memoria principal para escribir en cache
---     * <next_dirty_line> -> le indica a módulo de transferencia de bloques que debe enviar un bloque a la memoria principal      
+--     * <wr_mem_proc> -> seï¿½al de control para escribir en bloque de cache, palabra que proviene del procesador (DataIn)
+--     * <rd_mem_proc> -> seï¿½al de control para leer de bloque de cache, palabra que requiere el precesador
+--     * <next_valid_line> -> prï¿½ximo valor del registro (son cuatro ffs) correspondiente a "valid" 
+--     * <next_dirty_line> -> prï¿½ximo valor del registro (son cuatro ffs) correspondiente a "dirty"
+--     * <next_label_line(line)> -> (4 lï¿½neas) prï¿½ximo valor del registro que contiene la etiqueta 
+--     * <write_block> -> le indica al mï¿½dulo de transferencia de bloques que debe traer bloque de memoria principal para escribir en cache
+--     * <next_dirty_line> -> le indica a mï¿½dulo de transferencia de bloques que debe enviar un bloque a la memoria principal      
 
       -- lo que habia anteriormente
       --  rd_mem_proc <= '0';
@@ -284,7 +284,7 @@ begin
                         next_dirty_line(hit_line) <= '1';
                     end if;
                 else
-                    -- if cache miss, se debe evaluar si la línea a reemplazar es válida y sucio para escribir bloque de cache en memoria principal o no
+                    -- if cache miss, se debe evaluar si la lï¿½nea a reemplazar es vï¿½lida y sucio para escribir bloque de cache en memoria principal o no
                     D_Rdy <= '0';
                     next_repl_line <= Counter;
                     line_sel_proc <= Counter;
@@ -300,13 +300,14 @@ begin
             end if;
         when cache_writeback_victim_st =>
             D_Rdy <= '0';
-            -- si termina de escribir bloque de cache en memoria principal, se actualizan registros de la línea víctima y se trae bloque nuevo a cache
+            -- si termina de escribir bloque de cache en memoria principal, se actualizan registros de la lï¿½nea vï¿½ctima y se trae bloque nuevo a cache
             if (end_rd_block='1') then
                 write_block <= '1';
                 next_st_cache <= cache_refill_and_resume_st;
             end if;
         when cache_refill_and_resume_st =>
             D_Rdy <= '0';
+            write_block <= '1';
             if (end_wr_block='1') then
                 repl_line := CONV_INTEGER(reg_repl_line);
                 next_valid_line(repl_line) <= '1';
@@ -316,7 +317,7 @@ begin
                 -- completa operacion pendiente de CPU
                 if (WrStb='1') then
                     wr_mem_proc <= '1';
-                    -- marco como dirty la línea porque se escribió desde el procesador, aunque el bloque que se trajo de memoria principal no se modificó, se va a modificar con la escritura del procesador
+                    -- marco como dirty la lï¿½nea porque se escribiï¿½ desde el procesador, aunque el bloque que se trajo de memoria principal no se modificï¿½, se va a modificar con la escritura del procesador
                     next_dirty_line(repl_line) <= '1';
                 elsif (RdStb='1') then
                     rd_mem_proc <= '1';
@@ -335,14 +336,14 @@ end process;
 --  =====================
 
 --  ======================
---  === Procesos que modelan máquina de estados que transfiere bloques con la memoria principal
+--  === Procesos que modelan mï¿½quina de estados que transfiere bloques con la memoria principal
 --  ==== 
 --  === LATENCIA
 --  Cuando trae bloque desde memoria principal para escribirlo en cache son 15 ciclos 
 --        5 ciclos iniciales que tarda la memoria principal (dir fila+RAS+dir columna+CAS+busqueda palabra)
 --        8 ciclos de lectura y transferencia de palabra del bloque desde memoria principal a CACHE
---        1 ciclo porque escribe en el siguiene ciclo respecto a la última lectura, son memorias con lecturas sincrónicas
---        1 ciclo adicional porqeu maquina de estados de cache (solicitud de procesador) requiere última palabra del bloque y lo está escribiendo  
+--        1 ciclo porque escribe en el siguiene ciclo respecto a la ï¿½ltima lectura, son memorias con lecturas sincrï¿½nicas
+--        1 ciclo adicional porqeu maquina de estados de cache (solicitud de procesador) requiere ï¿½ltima palabra del bloque y lo estï¿½ escribiendo  
 
 --  Cuando lee bloque desde CACHE y lo transfiere a memoria principal son 13 ciclos 
 --        5 ciclos iniciales que tarda la memoria principal (dir fila+RAS+dir columna+CAS+busqueda palabra)
@@ -366,16 +367,16 @@ end process;
         variable repl_line:integer range 0 to 3;
     begin
       -- Cambio addr_line por repl_line (replacement line)
-      -- addr_line := CONV_INTEGER(addr(6 downto 5)); -- posee nro de línea en la cache
+      -- addr_line := CONV_INTEGER(addr(6 downto 5)); -- posee nro de lï¿½nea en la cache
        
       repl_line := CONV_INTEGER(reg_repl_line);
 
-       -- señales de control que indican lo que se va a hacer con la memoria principal: leer o escribir un bloque     
+       -- seï¿½ales de control que indican lo que se va a hacer con la memoria principal: leer o escribir un bloque     
        RdStb_block <= '0'; 
        WrStb_block <= '0'; 
        
-       -- la dirección de bloque de escritura de la memoria principal, se obtiene de los 26 bits más significativos de la dirección de la palabra
-       -- esto es por defecto. En el caso que se requiera escribir bloque de cache en bloque de memoria principal, se tomará de los label
+       -- la direcciï¿½n de bloque de escritura de la memoria principal, se obtiene de los 26 bits mï¿½s significativos de la direcciï¿½n de la palabra
+       -- esto es por defecto. En el caso que se requiera escribir bloque de cache en bloque de memoria principal, se tomarï¿½ de los label
        Addr_Block <= Addr(31 downto 5);       
        
        wr_mem_block <= '0';
@@ -387,7 +388,7 @@ end process;
                        
        case (curr_st_block) is
             when init_st_block =>
-            -- la máquina se activa cuando send_block o write_block provenientes de máquina de estado principal que maneja cache
+            -- la mï¿½quina se activa cuando send_block o write_block provenientes de mï¿½quina de estado principal que maneja cache
                             
                             next_addr_offset <= (others =>'0');                            
                             if (write_block='1') then
@@ -399,7 +400,7 @@ end process;
                             -- cuando se desea enviar bloque a memoria principal
                                 WrStb_block <= '1';
 
-                                -- dirección de bloque que debo escribir en memoria principal.
+                                -- direcciï¿½n de bloque que debo escribir en memoria principal.
                                 Addr_Block <= regs_label(repl_line); 
 
                                 next_st_block <= wait_rdData_block;
@@ -414,9 +415,9 @@ end process;
                             end if;
                             
            when write_Data_block =>
-           -- en este escribe en memoria cache hasta que la memoria principal indica que está disponible Rdy_block, 
-           -- es decir que cuando Rdy_block es uno, en este ciclo termina de transferir última palabra del bloque
-           -- por consiguiente acá en cache, reg_addr_offset es igual a 6 (mientras que en memoria principal vale 7)
+           -- en este escribe en memoria cache hasta que la memoria principal indica que estï¿½ disponible Rdy_block, 
+           -- es decir que cuando Rdy_block es uno, en este ciclo termina de transferir ï¿½ltima palabra del bloque
+           -- por consiguiente acï¿½ en cache, reg_addr_offset es igual a 6 (mientras que en memoria principal vale 7)
                             
                             RdStb_block <= '1';
                             wr_mem_block <= '1';
@@ -426,26 +427,26 @@ end process;
                             end if; 
 
            when write_Data2_block => 
-           -- para escribir el último dato
+           -- para escribir el ï¿½ltimo dato
                             RdStb_block <= '0';
                             wr_mem_block <= '1';
                             next_addr_offset <= (others=> '0');
                             next_st_block <= write_Data3_block;
                             
            when write_Data3_block => 
-           -- para indicarle a máquina de estados principal de cache, que finalizó de escribir el último dato
-           -- Este estado adicional surge porque si desde procesador quisiera leer la última palabra del bloque,
-           -- al ser lectura sincrónica, debo esperar al sigiuiente ciclo a última escritura de cache para leerla 
+           -- para indicarle a mï¿½quina de estados principal de cache, que finalizï¿½ de escribir el ï¿½ltimo dato
+           -- Este estado adicional surge porque si desde procesador quisiera leer la ï¿½ltima palabra del bloque,
+           -- al ser lectura sincrï¿½nica, debo esperar al sigiuiente ciclo a ï¿½ltima escritura de cache para leerla 
                             end_wr_block <= '1';
                             next_st_block <= init_st_block;
                              
            when wait_rdData_block => 
-           -- en este estado lee de memoria cache posición 0, hasta que memoria principal indica 
+           -- en este estado lee de memoria cache posiciï¿½n 0, hasta que memoria principal indica 
            -- que esta disponible RdWr_data para empezar a ecribir bloque 
            
                              WrStb_block <= '1';
 
-                             -- dirección de bloque que debo escribir en memoria principal.
+                             -- direcciï¿½n de bloque que debo escribir en memoria principal.
                              Addr_Block <= regs_label(repl_line); 
 
                              rd_mem_block <= '1';
@@ -455,13 +456,13 @@ end process;
                              end if;
   
             when read_Data_block => 
-            -- en este estado se espera hasta que la memoria principal indica que escribió la última palabra 
+            -- en este estado se espera hasta que la memoria principal indica que escribiï¿½ la ï¿½ltima palabra 
             -- del bloque Rdy_block, 
             -- en este estado se lee en serie las palabras de cache
                              
                              WrStb_block <= '1';
 
-                             -- dirección de bloque que debo escribir en memoria principal.
+                             -- direcciï¿½n de bloque que debo escribir en memoria principal.
                              Addr_Block <= regs_label(repl_line); 
 
                              rd_mem_block <= '1';
