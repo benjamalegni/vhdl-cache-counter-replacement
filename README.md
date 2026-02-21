@@ -17,3 +17,10 @@ ghdl -a --std=08 -fsynopsys descriptions/*.vhd && \
 ghdl -e --std=08 -fsynopsys ProcessorCacheTB && \
 ghdl -r --std=08 -fsynopsys ProcessorCacheTB
 ```
+
+# Señales importantes a ver en GTKWave:
+- D_Addr, D_RdStb, D_WrStb, D_Rdy, D_DataIn, D_DataOut — interfaz CPU-cache
+- Addr_block, RdStb_block, WrStb_block, RdWr_data, Rdy_block — interfaz cache-memoria
+- curr_st_cache — estado de la FSM principal
+- reg_valid_line, reg_dirty_line, regs_label — metadata de las 4 líneas
+- Counter_cache — valor del contador de reemplazo
