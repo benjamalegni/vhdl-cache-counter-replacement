@@ -12,6 +12,8 @@ Características:
 - ProcessorCacheTB.vhd — Testbench de validación
 
 ## Ejecución:
-ghdl -a --std=08 -fsynopsys descriptions/*.vhd
-ghdl -e --std=08 -fsynopsys ProcessorCacheTB
+```bash
+ghdl -a --std=08 -fsynopsys descriptions/*.vhd && \
+ghdl -e --std=08 -fsynopsys ProcessorCacheTB && \
 ghdl -r --std=08 -fsynopsys ProcessorCacheTB
+```
