@@ -196,7 +196,7 @@ begin
 
     state_machine_cache: process (curr_st_cache, reg_valid_line, reg_dirty_line, RdStb, WrStb, Addr,
                                     regs_label(0), regs_label(1), regs_label(2), regs_label(3),
-                                    end_wr_block, end_rd_block)
+                                    end_wr_block, end_rd_block, Counter, reg_repl_line)
         variable hit       : std_logic;
         variable hit_line  : integer range 0 to 3;
         variable repl_line : integer range 0 to 3; -- se asignara usando el contador
