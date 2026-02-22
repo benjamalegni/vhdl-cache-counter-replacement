@@ -491,4 +491,4 @@ end process;
     DataOut <= aux_rd;	 
     DataOut_mem <= aux_rd2;	 
 
-end cache_arch;
+  end architecture cache_arch;
