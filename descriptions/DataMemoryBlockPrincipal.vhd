@@ -1,5 +1,5 @@
 -- ======================
--- ====    Autor Martín Vázquez 
+-- ====    Autor Martin Vazquez 
 -- ====    Arquitectura de Computadoras 1 - 2024
 --
 -- ====== Memoria Principal de Datos 
@@ -30,7 +30,7 @@ entity DataMemoryBlock is
            RdStb_block : in std_logic ;
            WrStb_block : in std_logic ;
           
-           RdWr_data: out std_logic; -- memoria principal indica a cache que empezó a leer o escribir palabras
+           RdWr_data: out std_logic; -- memoria principal indica a cache que empezo a leer o escribir palabras
            Rdy_block: out std_logic; --se enceuntra disponible para lectura o escritura de bloque
 	       DataOut : out std_logic_vector(31 downto 0));
 end DataMemoryBlock;
@@ -38,26 +38,26 @@ end DataMemoryBlock;
 architecture mem_arch of DataMemoryBlock is 
 	
     type matriz is array(0 to C_MEM_SIZE-1) of std_logic_vector(7 downto 0);
-    signal memo: matriz; -- señal que posee las celdas de la memoria 
+    signal memo: matriz; -- senal que posee las celdas de la memoria 
     signal aux : std_logic_vector (31 downto 0):= (others=>'0'); -- utilizado para la lectura
     
             
-    -- señales que describe los estados de la máquina de estados que consume el tiempo
+    -- senales que describe los estados de la maquina de estados que consume el tiempo
     type type_state is (init_st, time_st1, time_st2, ReadWrite_st);
     signal curr_st, next_st: type_state;
     
-    -- señales que describen los contadores de ciclos para consumo de tiempo
+    -- senales que describen los contadores de ciclos para consumo de tiempo
     signal count_time, next_count_time: std_logic_vector(2 downto 0);
     
-    -- señal que posee la dirección dentro del bloque cuando se requiere avanzar en la escritura y lectura de bloques
+    -- senal que posee la direccion dentro del bloque cuando se requiere avanzar en la escritura y lectura de bloques
     signal reg_addr_offset, next_addr_offset: std_logic_vector(2 downto 0);
 
-    -- señales de lectura y escritura de la memoria manejadas por la máquina de control que modela consumo de tiempo
+    -- senales de lectura y escritura de la memoria manejadas por la maquina de control que modela consumo de tiempo
     signal rd_memory, wr_memory: std_logic; 
     
     
 begin
-    -- ==== proceso que modela inicialización de la memoria y acceso a las celdas
+    -- ==== proceso que modela inicializacion de la memoria y acceso a las celdas
     process (clk)
             variable init_memory : boolean := true;
             variable datum : STD_LOGIC_VECTOR(31 downto 0);
@@ -67,7 +67,7 @@ begin
     begin
         
         if init_memory then
-        -- esta rama del if se ejecuta por única vez al principio 
+        -- esta rama del if se ejecuta por unica vez al principio 
             -- primero iniciamos la memoria con ceros
                 for i in 0 to C_MEM_SIZE-1 loop
                     memo(i) <= (others => '0');
@@ -92,7 +92,7 @@ begin
             
             -- por ultimo cerramos el archivo y actualizamos el flag de memoria cargada
              file_close (bin_file);
-             -- para que no se ejecute más esta rama del if correspondiente a la inicialización de la memoria
+             -- para que no se ejecute mas esta rama del if correspondiente a la inicializacion de la memoria
              init_memory := false; 
         
        elsif (rising_edge(clk)) then
@@ -118,18 +118,18 @@ begin
 
 
 --  ======================
---  === Procesos que modelan máquina de estados utilizada para generar los 13 ciclos de reloj)
+--  === Procesos que modelan maquina de estados utilizada para generar los 13 ciclos de reloj)
 --  === involucrados en la lectura y escritura de bloques de 8 palabras de la memoria principal coreespondiente a memoria de Datos
 
---      ciclo 1 -> procesa dirección de fila en en el bus de direcciones
---      ciclo 2 -> procesa activación RAS# (Row Access Strobe)
---      ciclo 3 -> procesa dirección de columna en el bus de direcciones
---      ciclo 4 -> procesa activación CAS# (Column Access Strobe)
---      ciclo 5 -> lstencia de búsqueda de palabra
---      ciclos 6-13 -> ciclos de transmisión por bus de datos
+--      ciclo 1 -> procesa direccion de fila en en el bus de direcciones
+--      ciclo 2 -> procesa activacion RAS# (Row Access Strobe)
+--      ciclo 3 -> procesa direccion de columna en el bus de direcciones
+--      ciclo 4 -> procesa activacion CAS# (Column Access Strobe)
+--      ciclo 5 -> lstencia de busqueda de palabra
+--      ciclos 6-13 -> ciclos de transmision por bus de datos
 
-    -- Modela registro de estado, contador de tiempo usado en la máquina de estados
-    -- y el offset para direcciónar palabra dentro del bloque
+    -- Modela registro de estado, contador de tiempo usado en la maquina de estados
+    -- y el offset para direccionar palabra dentro del bloque
     -- curr_time y reg_addr_offset puedo fucionarlo en curr_time, pero por razones didacticas los trabajamos separados
     process (clk, reset) 
     begin
@@ -145,7 +145,7 @@ begin
     end process;
     
     
-    -- función de transición de estados y salidas de la máquina
+    -- funcion de transicion de estados y salidas de la maquina
     state_machine: process (curr_st, RdStb_block, WrStb_block, reg_addr_offset, count_time)
     begin
     
@@ -156,13 +156,13 @@ begin
        rd_memory <= '0';
        wr_memory <= '0';
     
-       -- señales que indican a cache que la memoria princial empezó a leer o a escribir
+       -- senales que indican a cache que la memoria princial empezo a leer o a escribir
        RdWr_data <= '0';
        
        case (curr_st) is
        
             when init_st =>
-            -- cuando se activa WrStb_block o RdStb_block se procesa dirección de fila 
+            -- cuando se activa WrStb_block o RdStb_block se procesa direccion de fila 
             -- en el bus de direcciones ciclo 1
                                                        
                             if (RdStb_block='1'or WrStb_block='1') then
@@ -172,9 +172,9 @@ begin
                             end if;
            
            when time_st1 => -- ciclos 2-4
-            -- activación RAS# 
-            -- dirección de columna en el bus de direcciones
-            --  activación CAS# 
+            -- activacion RAS# 
+            -- direccion de columna en el bus de direcciones
+            --  activacion CAS# 
             
                             Rdy_block <= '0';
                             next_count_time <= count_time + 1;
@@ -186,7 +186,7 @@ begin
            
            
            when time_st2 => -- ciclo 5
-           -- latencia de búsqueda de palabra
+           -- latencia de busqueda de palabra
            
                             Rdy_block <= '0';
                             next_addr_offset <= (others => '0');
@@ -228,5 +228,4 @@ begin
 
 
 end mem_arch;
-
 
